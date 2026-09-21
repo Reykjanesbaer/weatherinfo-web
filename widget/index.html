@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="is" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src https://api.open-meteo.com; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>Veður</title>
+<link rel="stylesheet" href="widget.css">
+</head>
+<body>
+  <!--
+    Veðurgræja Reykjanesbæjar.
+    Stillt með færibreytum í slóð, t.d.:
+      widget/?stadur=reykjanesbaer&view=full&days=3&theme=auto
+    Sjá README fyrir allar stillingar.
+  -->
+  <div id="wx-root" class="wx" role="region" aria-live="polite" aria-label="Veður"></div>
+
+  <script src="config.js"></script>
+  <script src="icons.js"></script>
+  <script src="widget.js"></script>
+</body>
+</html>
