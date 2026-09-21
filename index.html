@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="is">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veðurgræja — Reykjanesbær</title>
+<meta name="description" content="Lítil, innfellanleg veðurgræja fyrir vef Reykjanesbæjar. Stilltu hana hér og afritaðu innfellingarkóðann.">
+<link rel="stylesheet" href="widget/widget.css">
+<style>
+  :root {
+    --page-bg: #f6f8fb;
+    --page-card: #fff;
+    --page-border: #e2e7ee;
+    --page-text: #16202c;
+    --page-muted: #5c6a7a;
+    --page-accent: #0b6fb8;
+    --page-code: #0f1720;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --page-bg: #0f141a;
+      --page-card: #161b22;
+      --page-border: #2b333e;
+      --page-text: #e8edf3;
+      --page-muted: #9aa7b6;
+      --page-accent: #58aef0;
+      --page-code: #0b0f14;
+    }
+  }
+
+  body {
+    margin: 0;
+    background: var(--page-bg);
+    color: var(--page-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55;
+  }
+
+  .page { max-width: 1040px; margin: 0 auto; padding: 40px 16px 72px; }
+
+  header { margin-bottom: 30px; }
+  h1 { font-size: clamp(24px, 4vw, 33px); margin: 0 0 8px; letter-spacing: -.02em; }
+  .lede { color: var(--page-muted); margin: 0; max-width: 62ch; font-size: 15px; }
+
+  .layout { display: grid; gap: 22px; grid-template-columns: minmax(0, 1fr); }
+  @media (min-width: 860px) { .layout { grid-template-columns: 320px minmax(0, 1fr); align-items: start; } }
+
+  .panel {
+    background: var(--page-card);
+    border: 1px solid var(--page-border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+
+  .panel h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .07em;
+    color: var(--page-muted); margin: 0 0 16px; font-weight: 700;
+  }
+
+  .field { margin-bottom: 14px; }
+  .field:last-child { margin-bottom: 0; }
+  .field > label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 5px; }
+
+  select, input[type="number"], input[type="text"] {
+    width: 100%; font: inherit; font-size: 13.5px;
+    padding: 7px 9px; border-radius: 8px;
+    border: 1px solid var(--page-border);
+    background: var(--page-bg); color: var(--page-text);
+  }
+  input[type="color"] {
+    width: 100%; height: 34px; padding: 2px; border-radius: 8px;
+    border: 1px solid var(--page-border); background: var(--page-bg); cursor: pointer;
+  }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 13.5px; }
+  .check input { width: 15px; height: 15px; accent-color: var(--page-accent); }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .preview {
+    display: grid; place-items: center;
+    min-height: 300px; padding: 30px 20px;
+    border-radius: 14px;
+    border: 1px solid var(--page-border);
+    background:
+      repeating-conic-gradient(var(--page-border) 0% 25%, transparent 0% 50%) 50%/18px 18px,
+      var(--page-card);
+  }
+  .preview iframe { width: 100%; max-width: 420px; border: 0; display: block; }
+
+  .snippet { margin-top: 22px; }
+  .snippet h3 { font-size: 14px; margin: 0 0 4px; }
+  .snippet p { font-size: 13px; color: var(--page-muted); margin: 0 0 10px; }
+
+  .code {
+    position: relative;
+    background: var(--page-code);
+    border-radius: 10px;
+    padding: 14px 52px 14px 14px;
+    overflow-x: auto;
+  }
+  .code pre {
+    margin: 0; font-size: 12.5px; line-height: 1.6;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: #d8e2ee; white-space: pre-wrap; word-break: break-all;
+  }
+  .copy {
+    position: absolute; top: 9px; right: 9px;
+    font: inherit; font-size: 11.5px; font-weight: 600;
+    padding: 5px 10px; border-radius: 6px; cursor: pointer;
+    border: 1px solid rgba(255,255,255,.18);
+    background: rgba(255,255,255,.08); color: #d8e2ee;
+  }
+  .copy:hover { background: rgba(255,255,255,.16); }
+  .copy.ok { color: #7ee2a8; border-color: #7ee2a8; }
+
+  .gallery { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); margin-top: 14px; }
+  .gallery figure { margin: 0; }
+  .gallery figcaption { font-size: 12px; color: var(--page-muted); margin-top: 7px; }
+  .gallery iframe { width: 100%; border: 0; display: block; }
+
+  section.docs { margin-top: 48px; }
+  section.docs h2 { font-size: 19px; margin: 0 0 12px; letter-spacing: -.01em; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--page-border); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--page-muted); }
+  td code, p code, li code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: .92em; background: var(--page-bg);
+    border: 1px solid var(--page-border); border-radius: 5px; padding: 1px 5px;
+  }
+  .table-wrap { overflow-x: auto; background: var(--page-card); border: 1px solid var(--page-border); border-radius: 12px; }
+  footer { margin-top: 52px; font-size: 12.5px; color: var(--page-muted); }
+  footer a, .lede a { color: var(--page-accent); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <h1>Veðurgræja Reykjanesbæjar</h1>
+    <p class="lede">
+      Lítil, sjálfstæð veðurgræja sem hægt er að fella inn á hvaða vefsíðu sem er —
+      líka inni í Payload CMS. Stilltu hana hér að neðan og afritaðu kóðann.
+    </p>
+  </header>
+
+  <div class="layout">
+
+    <form class="panel" id="controls">
+      <h2>Stillingar</h2>
+
+      <div class="field">
+        <label for="c-place">Staður</label>
+        <select id="c-place"></select>
+      </div>
+
+      <div class="field">
+        <label for="c-view">Útgáfa</label>
+        <select id="c-view">
+          <option value="mini">Mini — minnsta útgáfan</option>
+          <option value="compact" selected>Compact — núverandi veður</option>
+          <option value="full">Full — með spá</option>
+        </select>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="c-days">Spádagar</label>
+          <select id="c-days">
+            <option value="0">Engir</option>
+            <option value="2">2 dagar</option>
+            <option value="3">3 dagar</option>
+            <option value="4">4 dagar</option>
+            <option value="5">5 dagar</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="c-hours">Klukkustundir</label>
+          <select id="c-hours">
+            <option value="0">Engar</option>
+            <option value="6">Næstu 6</option>
+            <option value="12">Næstu 12</option>
+            <option value="24">Næstu 24</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="c-theme">Þema</label>
+          <select id="c-theme">
+            <option value="auto">Sjálfvirkt</option>
+            <option value="light">Ljóst</option>
+            <option value="dark">Dökkt</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="c-lang">Tungumál</label>
+          <select id="c-lang">
+            <option value="is">Íslenska</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <label for="c-accent">Áherslulitur</label>
+          <input type="color" id="c-accent" value="#0b6fb8">
+        </div>
+        <div class="field">
+          <label for="c-width">Hámarksbreidd</label>
+          <input type="text" id="c-width" value="420px">
+        </div>
+      </div>
+
+      <div class="field check">
+        <input type="checkbox" id="c-sun">
+        <label for="c-sun" style="margin:0">Sólarupprás og sólsetur</label>
+      </div>
+      <div class="field check">
+        <input type="checkbox" id="c-transparent">
+        <label for="c-transparent" style="margin:0">Gegnsær bakgrunnur</label>
+      </div>
+      <div class="field check">
+        <input type="checkbox" id="c-credit" checked>
+        <label for="c-credit" style="margin:0">Sýna heimild í fæti</label>
+      </div>
+    </form>
+
+    <div>
+      <div class="preview">
+        <iframe id="preview" title="Forskoðun á veðurgræju" scrolling="no"
+                style="height:260px"></iframe>
+      </div>
+
+      <div class="snippet">
+        <h3>Innfelling með iframe</h3>
+        <p>Öruggasta leiðin — virkar alls staðar, líka í HTML-reit í Payload.</p>
+        <div class="code">
+          <button type="button" class="copy" data-target="code-iframe">Afrita</button>
+          <pre id="code-iframe"></pre>
+        </div>
+      </div>
+
+      <div class="snippet">
+        <h3>Innfelling með skriftu (sjálfvirk hæð)</h3>
+        <p>Stillir hæðina sjálfkrafa eftir innihaldi. Krefst þess að <code>&lt;script&gt;</code> sé leyft.</p>
+        <div class="code">
+          <button type="button" class="copy" data-target="code-script">Afrita</button>
+          <pre id="code-script"></pre>
+        </div>
+      </div>
+
+      <div class="snippet">
+        <h3>Bein slóð</h3>
+        <p>Nothæf ein og sér, t.d. á skjá í anddyri eða sem forskoðun.</p>
+        <div class="code">
+          <button type="button" class="copy" data-target="code-url">Afrita</button>
+          <pre id="code-url"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="docs">
+    <h2>Útgáfur</h2>
+    <div class="gallery" id="gallery"></div>
+  </section>
+
+  <section class="docs">
+    <h2>Allar stillingar</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Færibreyta</th><th>Gildi</th><th>Sjálfgefið</th><th>Lýsing</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>stadur</code></td><td>lykill</td><td><code>reykjanesbaer</code></td><td>Forstilltur staður á Suðurnesjum</td></tr>
+          <tr><td><code>lat</code>, <code>lon</code></td><td>tölur</td><td>—</td><td>Eigin hnit; hafa forgang á <code>stadur</code></td></tr>
+          <tr><td><code>name</code></td><td>texti</td><td>heiti staðar</td><td>Yfirskrift sem birtist efst</td></tr>
+          <tr><td><code>view</code></td><td><code>mini</code> · <code>compact</code> · <code>full</code></td><td><code>compact</code></td><td>Stærð og umfang</td></tr>
+          <tr><td><code>days</code></td><td>0–7</td><td>3 í <code>full</code>, annars 0</td><td>Fjöldi spádaga</td></tr>
+          <tr><td><code>hours</code></td><td>0–24</td><td>0</td><td>Klukkustundaspá</td></tr>
+          <tr><td><code>details</code></td><td><code>0</code> · <code>1</code></td><td><code>1</code></td><td>Vindur, raki, úrkoma o.fl.</td></tr>
+          <tr><td><code>sun</code></td><td><code>0</code> · <code>1</code></td><td><code>0</code></td><td>Sólarupprás og sólsetur</td></tr>
+          <tr><td><code>theme</code></td><td><code>auto</code> · <code>light</code> · <code>dark</code></td><td><code>auto</code></td><td>Litaþema</td></tr>
+          <tr><td><code>lang</code></td><td><code>is</code> · <code>en</code></td><td><code>is</code></td><td>Tungumál</td></tr>
+          <tr><td><code>accent</code></td><td>hex-litur</td><td><code>0b6fb8</code></td><td>Áherslulitur (án <code>#</code>)</td></tr>
+          <tr><td><code>radius</code></td><td>0–99</td><td><code>14</code></td><td>Hornarúnnun í px</td></tr>
+          <tr><td><code>bg</code></td><td><code>transparent</code></td><td>—</td><td>Fellir kortið inn í síðuna</td></tr>
+          <tr><td><code>credit</code></td><td><code>0</code> · <code>1</code></td><td><code>1</code></td><td>Heimild í fæti</td></tr>
+          <tr><td><code>refresh</code></td><td>5–180</td><td><code>15</code></td><td>Endurnýjun í mínútum</td></tr>
+          <tr><td><code>link</code></td><td>slóð</td><td>—</td><td>Gerir kortið smellanlegt</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    Veðurgögn frá <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>
+    (CC BY 4.0). Kóði á
+    <a href="https://github.com/Reykjanesbaer/weatherinfo-web" target="_blank" rel="noopener">GitHub</a>.
+  </footer>
+</div>
+
+<script src="widget/config.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var base = location.href.replace(/[^/]*$/, '');
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* Fylla staðalistann úr sameiginlegu stillingunum */
+  var placeSelect = $('c-place');
+  Object.keys(WeatherConfig.PLACES).forEach(function (key) {
+    var opt = document.createElement('option');
+    opt.value = key;
+    opt.textContent = WeatherConfig.PLACES[key].name;
+    if (key === WeatherConfig.DEFAULT_PLACE) opt.selected = true;
+    placeSelect.appendChild(opt);
+  });
+
+  function options() {
+    var view = $('c-view').value;
+    var o = {
+      stadur: placeSelect.value,
+      view: view,
+      theme: $('c-theme').value,
+      lang: $('c-lang').value,
+      days: $('c-days').value,
+      hours: $('c-hours').value,
+      accent: $('c-accent').value.replace('#', ''),
+      sun: $('c-sun').checked ? '1' : '',
+      bg: $('c-transparent').checked ? 'transparent' : '',
+      credit: $('c-credit').checked ? '' : '0'
+    };
+    /* Sleppa því sem er sjálfgefið svo slóðin haldist stutt */
+    if (o.theme === 'auto') delete o.theme;
+    if (o.lang === 'is') delete o.lang;
+    if (o.accent === '0b6fb8') delete o.accent;
+    if (o.days === '0' || (view === 'full' && o.days === '3')) delete o.days;
+    if (o.hours === '0') delete o.hours;
+    if (!o.sun) delete o.sun;
+    if (!o.bg) delete o.bg;
+    if (!o.credit) delete o.credit;
+    if (o.view === 'compact') delete o.view;
+    return o;
+  }
+
+  function query(o) {
+    var p = new URLSearchParams();
+    Object.keys(o).forEach(function (k) { p.set(k, o[k]); });
+    var s = p.toString();
+    return s ? '?' + s : '';
+  }
+
+  function estimateHeight(o) {
+    var view = o.view || 'compact';
+    var days = parseInt(o.days, 10);
+    if (!isFinite(days)) days = view === 'full' ? 3 : 0;
+    var hours = parseInt(o.hours, 10) || 0;
+    var h = view === 'mini' ? 96 : 160;
+    if (view !== 'mini') h += o.sun ? 84 : 56;
+    h += days * 32 + (days ? 14 : 0);
+    h += hours ? 90 : 0;
+    if (o.credit !== '0') h += 24;
+    return h;
+  }
+
+  function attrLines(o) {
+    return Object.keys(o).map(function (k) {
+      return '  data-' + k + '="' + o[k] + '"';
+    });
+  }
+
+  function update() {
+    var o = options();
+    var q = query(o);
+    var width = $('c-width').value.trim() || '420px';
+    var height = estimateHeight(o);
+    var url = base + 'widget/' + q;
+
+    var frame = $('preview');
+    frame.style.height = height + 'px';
+    frame.style.maxWidth = width;
+    frame.src = url + (q ? '&' : '?') + 'frameId=preview';
+
+    $('code-url').textContent = url;
+
+    $('code-iframe').textContent =
+      '<iframe\n' +
+      '  src="' + url + '"\n' +
+      '  title="Veður"\n' +
+      '  loading="lazy"\n' +
+      '  scrolling="no"\n' +
+      '  style="width:100%;max-width:' + width + ';height:' + height + 'px;border:0;display:block">\n' +
+      '</iframe>';
+
+    var lines = ['<script', '  src="' + base + 'embed.js"']
+      .concat(attrLines(o))
+      .concat(['  data-max-width="' + width + '">']);
+    $('code-script').textContent = lines.join('\n') + '\n<\/script>';
+  }
+
+  /*
+   * Allar græjur á síðunni (forskoðun og sýnishorn) tilkynna eigin hæð.
+   * Við finnum rétta iframe-inn út frá sendandanum í stað þess að treysta
+   * á fast áætlað gildi — þá klippist ekkert af neðst.
+   */
+  window.addEventListener('message', function (e) {
+    if (!e.data || e.data.type !== 'weatherinfo:height') return;
+    var h = parseInt(e.data.height, 10);
+    if (!isFinite(h) || h <= 0) return;
+    var frames = document.querySelectorAll('iframe');
+    for (var i = 0; i < frames.length; i++) {
+      if (frames[i].contentWindow === e.source) {
+        frames[i].style.height = h + 'px';
+        return;
+      }
+    }
+  });
+
+  $('controls').addEventListener('input', update);
+  $('controls').addEventListener('change', update);
+
+  /* Afritunarhnappar */
+  document.querySelectorAll('.copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = document.getElementById(btn.dataset.target).textContent;
+      navigator.clipboard.writeText(text).then(function () {
+        var old = btn.textContent;
+        btn.textContent = 'Afritað';
+        btn.classList.add('ok');
+        setTimeout(function () { btn.textContent = old; btn.classList.remove('ok'); }, 1600);
+      });
+    });
+  });
+
+  /* Sýnishorn af öllum útgáfum */
+  var samples = [
+    { q: '?view=mini', h: 96,  caption: 'mini — minnsta útgáfan' },
+    { q: '',           h: 240, caption: 'compact — núverandi veður (sjálfgefið)' },
+    { q: '?view=full&days=3', h: 358, caption: 'full — með þriggja daga spá' },
+    { q: '?view=compact&hours=12&details=0', h: 265, caption: 'compact + klukkustundaspá' }
+  ];
+  var gallery = document.getElementById('gallery');
+  samples.forEach(function (s) {
+    var fig = document.createElement('figure');
+    var f = document.createElement('iframe');
+    f.src = base + 'widget/' + s.q;
+    f.title = 'Sýnishorn: ' + s.caption;
+    f.setAttribute('scrolling', 'no');
+    f.style.height = s.h + 'px';
+    f.loading = 'lazy';
+    var cap = document.createElement('figcaption');
+    cap.textContent = s.caption;
+    fig.appendChild(f);
+    fig.appendChild(cap);
+    gallery.appendChild(fig);
+  });
+
+  update();
+})();
+</script>
+</body>
+</html>

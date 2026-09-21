@@ -1,0 +1,424 @@
+/*
+ * weatherinfo-web — útlit veðurgræjunnar.
+ * Allir litir eru CSS breytur svo hægt sé að stilla þær með ?accent= og ?theme=.
+ */
+
+:root {
+  --wx-accent: #0b6fb8;
+  --wx-radius: 14px;
+
+  --wx-bg: #ffffff;
+  --wx-bg-soft: #f4f6f9;
+  --wx-border: #e2e7ee;
+  --wx-text: #16202c;
+  --wx-text-muted: #5c6a7a;
+  --wx-shadow: 0 1px 2px rgba(16, 32, 48, .06), 0 6px 20px rgba(16, 32, 48, .07);
+
+  --wx-sun: #f2a03d;
+  --wx-moon: #8a9cc4;
+  --wx-cloud: #8b98a8;
+  --wx-rain: #3f8fd2;
+  --wx-snow: #79b6e8;
+  --wx-bolt: #eab000;
+}
+
+/* Dökkt þema — sjálfvirkt eftir stillingum notanda */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --wx-bg: #161b22;
+    --wx-bg-soft: #1e242d;
+    --wx-border: #2b333e;
+    --wx-text: #e8edf3;
+    --wx-text-muted: #9aa7b6;
+    --wx-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .28);
+    --wx-cloud: #97a5b5;
+  }
+}
+
+/* Dökkt þema — þvingað með ?theme=dark */
+:root[data-theme="dark"] {
+  --wx-bg: #161b22;
+  --wx-bg-soft: #1e242d;
+  --wx-border: #2b333e;
+  --wx-text: #e8edf3;
+  --wx-text-muted: #9aa7b6;
+  --wx-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .28);
+  --wx-cloud: #97a5b5;
+}
+
+/* Gegnsær bakgrunnur — fellur inn í síðuna sem græjan er embedduð á */
+:root[data-bg="transparent"] {
+  --wx-bg: transparent;
+  --wx-shadow: none;
+  --wx-border: transparent;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  color: var(--wx-text);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------------ */
+/* Kort                                                                */
+/* ------------------------------------------------------------------ */
+
+.wx {
+  display: block;
+  background: var(--wx-bg);
+  border: 1px solid var(--wx-border);
+  border-radius: var(--wx-radius);
+  box-shadow: var(--wx-shadow);
+  padding: 16px 18px;
+  container-type: inline-size;
+}
+
+.wx-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.wx-place {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -.005em;
+  color: var(--wx-accent);
+  margin: 0;
+}
+
+.wx-time {
+  font-size: 11.5px;
+  color: var(--wx-text-muted);
+  white-space: nowrap;
+}
+
+/* Núverandi veður */
+.wx-now {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.wx-now-icon {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+}
+
+.wx-now-icon .wx-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.wx-now-main { min-width: 0; }
+
+.wx-temp {
+  display: flex;
+  align-items: flex-start;
+  font-size: 40px;
+  line-height: 1;
+  font-weight: 600;
+  letter-spacing: -.03em;
+}
+
+.wx-temp-unit {
+  font-size: .45em;
+  font-weight: 500;
+  margin-top: .25em;
+  margin-left: 2px;
+  color: var(--wx-text-muted);
+}
+
+.wx-cond {
+  margin-top: 5px;
+  font-size: 13.5px;
+  color: var(--wx-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Smáatriði: vindur, raki, úrkoma … */
+.wx-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 14px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--wx-border);
+}
+
+.wx-detail {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  min-width: 0;
+}
+
+.wx-detail .wx-icon-sm {
+  flex: 0 0 auto;
+  width: 15px;
+  height: 15px;
+  stroke: var(--wx-text-muted);
+  opacity: .85;
+}
+
+.wx-detail-label {
+  color: var(--wx-text-muted);
+}
+
+.wx-detail-value {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Spá næstu daga */
+/*
+ * Spáin er eitt sameiginlegt rist fyrir allar raðir (raðirnar nota
+ * display:contents) svo dálkar stillist saman og löng heiti á borð við
+ * "Á morgun" brotni ekki í tvær línur.
+ */
+.wx-forecast {
+  display: grid;
+  grid-template-columns: auto 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px 10px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--wx-border);
+  font-size: 12.5px;
+}
+
+.wx-day { display: contents; }
+
+.wx-day-name {
+  font-weight: 600;
+  color: var(--wx-text-muted);
+  white-space: nowrap;
+}
+
+.wx-day-icon { width: 26px; height: 26px; }
+.wx-day-icon .wx-icon { width: 100%; height: 100%; }
+
+.wx-day-cond {
+  color: var(--wx-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wx-day-temps {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  justify-self: end;
+}
+
+.wx-day-max { font-weight: 600; }
+.wx-day-min { color: var(--wx-text-muted); margin-left: .35em; }
+
+/* Næstu klukkustundir */
+.wx-hours {
+  display: flex;
+  gap: 4px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--wx-border);
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.wx-hour {
+  flex: 1 0 auto;
+  min-width: 48px;
+  text-align: center;
+  padding: 4px 2px;
+  border-radius: 9px;
+}
+
+.wx-hour-now { background: var(--wx-bg-soft); }
+
+.wx-hour-time {
+  font-size: 11px;
+  color: var(--wx-text-muted);
+  margin-bottom: 3px;
+}
+
+.wx-hour-icon { width: 24px; height: 24px; margin: 0 auto 3px; }
+.wx-hour-icon .wx-icon { width: 100%; height: 100%; }
+
+.wx-hour-temp { font-size: 12.5px; font-weight: 600; }
+
+.wx-hour-pop {
+  font-size: 10.5px;
+  color: var(--wx-rain);
+  margin-top: 2px;
+  min-height: 1em;
+}
+
+/* Fótur */
+.wx-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 10.5px;
+  color: var(--wx-text-muted);
+}
+
+.wx-foot a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  opacity: .75;
+}
+
+.wx-foot a:hover { opacity: 1; }
+
+/* ------------------------------------------------------------------ */
+/* Útgáfa: mini — ein lína                                             */
+/* ------------------------------------------------------------------ */
+
+.wx[data-view="mini"] {
+  padding: 11px 14px;
+}
+
+.wx[data-view="mini"] .wx-now { gap: 11px; }
+.wx[data-view="mini"] .wx-now-icon { width: 38px; height: 38px; }
+.wx[data-view="mini"] .wx-temp { font-size: 27px; }
+.wx[data-view="mini"] .wx-head { margin-bottom: 7px; }
+.wx[data-view="mini"] .wx-cond { font-size: 12.5px; margin-top: 3px; }
+/* Tíminn stendur þegar í hausnum — sleppum honum úr fætinum í mini */
+.wx[data-view="mini"] .wx-foot { justify-content: flex-end; margin-top: 9px; }
+.wx[data-view="mini"] .wx-foot > span:first-child { display: none; }
+
+/* ------------------------------------------------------------------ */
+/* Íkonalitir                                                          */
+/* ------------------------------------------------------------------ */
+
+.wx-icon { stroke: var(--wx-cloud); }
+.wx-icon .wx-sun { stroke: var(--wx-sun); }
+.wx-icon .wx-moon { stroke: var(--wx-moon); }
+.wx-icon .wx-cloud { stroke: var(--wx-cloud); }
+.wx-icon .wx-cloud-back { stroke: var(--wx-cloud); opacity: .5; }
+.wx-icon .wx-rain { stroke: var(--wx-rain); }
+.wx-icon .wx-snow { stroke: var(--wx-snow); }
+.wx-icon .wx-fog { stroke: var(--wx-cloud); opacity: .7; }
+.wx-icon .wx-bolt { stroke: var(--wx-bolt); }
+
+/* Vindör */
+.wx-arrow {
+  width: 13px;
+  height: 13px;
+  vertical-align: -2px;
+  margin-right: 1px;
+  color: var(--wx-accent);
+  opacity: .85;
+}
+
+/* ------------------------------------------------------------------ */
+/* Hleðsla og villur                                                   */
+/* ------------------------------------------------------------------ */
+
+.wx-skeleton .wx-sk {
+  background: linear-gradient(90deg, var(--wx-bg-soft) 25%, var(--wx-border) 37%, var(--wx-bg-soft) 63%);
+  background-size: 400% 100%;
+  animation: wx-shimmer 1.4s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+@keyframes wx-shimmer {
+  0%   { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wx-skeleton .wx-sk { animation: none; }
+}
+
+.wx-sk-place { height: 13px; width: 40%; }
+.wx-sk-icon  { height: 56px; width: 56px; border-radius: 50%; }
+.wx-sk-temp  { height: 34px; width: 92px; margin-bottom: 8px; }
+.wx-sk-cond  { height: 12px; width: 120px; }
+.wx-sk-row   { height: 12px; width: 100%; margin-top: 8px; }
+
+.wx-error {
+  text-align: center;
+  padding: 6px 0 2px;
+}
+
+.wx-error-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.wx-error-body {
+  font-size: 12.5px;
+  color: var(--wx-text-muted);
+  margin-bottom: 11px;
+}
+
+.wx-retry {
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--wx-border);
+  background: var(--wx-bg-soft);
+  color: var(--wx-text);
+  cursor: pointer;
+}
+
+.wx-retry:hover { border-color: var(--wx-accent); color: var(--wx-accent); }
+.wx-retry .wx-icon-sm { width: 14px; height: 14px; stroke: currentColor; }
+
+.wx-stale { opacity: .55; }
+
+/* Aðeins fyrir skjálesara */
+.wx-sr {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Þröngt pláss                                                        */
+/* ------------------------------------------------------------------ */
+
+@container (max-width: 250px) {
+  .wx-details { grid-template-columns: minmax(0, 1fr); }
+  /* Veðurlýsing dagsins víkur — ristið fer úr fjórum dálkum í þrjá */
+  .wx-forecast { grid-template-columns: auto 24px minmax(0, 1fr); }
+  .wx-day-cond { display: none; }
+  .wx-day-icon { width: 24px; height: 24px; }
+}
+
+@media (max-width: 250px) {
+  .wx-temp { font-size: 34px; }
+}
