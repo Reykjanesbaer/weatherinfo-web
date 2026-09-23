@@ -21,9 +21,14 @@ GitHub Pages og fella inn hvar sem er, þar á meðal í Payload CMS.
   title="Veður"
   loading="lazy"
   scrolling="no"
-  style="width:100%;max-width:420px;height:240px;border:0;display:block">
+  style="width:100%;max-width:420px;height:240px;border:0;display:block;margin-left:0;margin-right:auto">
 </iframe>
 ```
+
+Spássíurnar ráða staðsetningunni á síðunni: `margin-left:0;margin-right:auto`
+setur kortið vinstra megin, `margin-left:auto;margin-right:auto` í miðju og
+`margin-left:auto;margin-right:0` hægra megin. Auto-spássíur yfirskrifa miðjun
+sem kemur úr umlykjandi gámi, bæði með `text-align` og flex.
 
 Hæðin er fast gildi hér, svo veldu hana eftir útgáfu:
 
@@ -46,12 +51,18 @@ eftir innihaldi — ekkert autt svæði og ekkert afklippt:
   data-stadur="reykjanesbaer"
   data-view="full"
   data-days="3"
+  data-align="left"
   data-max-width="420px">
 </script>
 ```
 
 Allar `data-*` færibreytur samsvara færibreytunum í töflunni hér að neðan
-(`data-stadur` → `?stadur=`).
+(`data-stadur` → `?stadur=`, `data-credit-size` → `?creditSize=`).
+
+Tvær eru undantekning: **`data-align`** (`left`, `center`, `right` —
+sjálfgefið `left`) og **`data-max-width`** eru ekki sendar áfram á græjuna,
+heldur stýra þær aðeins iframe-inum sjálfum — staðsetningu hans á síðunni og
+hámarksbreidd.
 
 > **Ath.** Margar Payload-uppsetningar hreinsa `<script>` úr ritlinum
 > (`lexical`/`slate` sanitizing). Ef skriftan skilar engu skaltu nota
@@ -59,7 +70,9 @@ Allar `data-*` færibreytur samsvara færibreytunum í töflunni hér að neðan
 
 ### 3. Sem eigin Payload-blokk
 
-Ef þið viljið gefa ritstjórum val í stað þess að líma HTML, þá dugar lítil blokk:
+Ef þið viljið gefa ritstjórum val í stað þess að líma HTML er tilbúin blokk í
+[`payload/`](payload/) — afritið möppuna inn í verkefnið og fylgið
+[`payload/README.md`](payload/README.md). Í stuttu máli lítur hún svona út:
 
 ```ts
 // blocks/Vedur.ts
@@ -149,6 +162,7 @@ Allar stillingar eru færibreytur í slóðinni.
 | `radius` | `0`–`99` | `14` | Hornarúnnun í px |
 | `bg` | `transparent` | — | Fellir kortið inn í síðuna |
 | `credit` | `0`, `1` | `1` | Heimild í fæti |
+| `creditSize` | `9`–`16` | `10.5` | Leturstærð heimildar í px (9–16, sjálfgefið 10.5). |
 | `refresh` | `5`–`180` | `15` | Endurnýjun í mínútum |
 | `link` | slóð | — | Gerir kortið smellanlegt |
 
@@ -201,6 +215,9 @@ widget/
   widget.js         Gagnasókn og teikning
   config.js         Staðir, veðurkóðar, þýðingar
   icons.js          SVG-veðuríkon
+payload/            Tilbúin Payload 3 blokk (afritast inn í vefverkefnið)
+  blocks/Vedur/config.ts
+  blocks/Vedur/Component.tsx
 .github/workflows/
   deploy.yml        Sjálfvirk birting á GitHub Pages
 ```
@@ -224,6 +241,7 @@ innfellingarkóðanum.
 
 ### Aðgengi
 
-Kortið er með `aria-live` svæði og faldri textasamantekt fyrir skjálesara
+Kortið er merkt sem svæði (`role="region"`) og er með faldri
+textasamantekt fyrir skjálesara
 (t.d. „Reykjanesbær: Skúrir, 6 stig, vindur suðvestan 11 m/s (kaldi)“), notar
 íslenskan tugastaf og virðir `prefers-reduced-motion` og `prefers-color-scheme`.

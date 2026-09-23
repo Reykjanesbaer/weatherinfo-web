@@ -6,6 +6,7 @@
 :root {
   --wx-accent: #0b6fb8;
   --wx-radius: 14px;
+  --wx-credit-size: 10.5px;
 
   --wx-bg: #ffffff;
   --wx-bg-soft: #f4f6f9;
@@ -45,6 +46,12 @@
   --wx-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 6px 20px rgba(0, 0, 0, .28);
   --wx-cloud: #97a5b5;
 }
+
+/*
+ * Innfellt í iframe: skugginn nær út fyrir rammann og klippist af, sem
+ * birtist sem hörð brún meðfram jöðrunum. Sleppum honum þá alveg.
+ */
+:root[data-framed] { --wx-shadow: none; }
 
 /* Gegnsær bakgrunnur — fellur inn í síðuna sem græjan er embedduð á */
 :root[data-bg="transparent"] {
@@ -283,14 +290,24 @@ body {
   color: var(--wx-text-muted);
 }
 
+/*
+ * Heimildin á Open-Meteo er hógvær en hverfur aldrei: CC BY 4.0 krefst
+ * tilvísunar. Stærðin er stillanleg með ?creditSize= (9-16px).
+ */
 .wx-foot a {
   color: inherit;
   text-decoration: none;
-  border-bottom: 1px solid currentColor;
-  opacity: .75;
+  font-size: var(--wx-credit-size);
+  border-bottom: 1px solid transparent;
+  opacity: .5;
+  transition: opacity .15s ease, border-bottom-color .15s ease;
 }
 
-.wx-foot a:hover { opacity: 1; }
+.wx-foot a:hover,
+.wx-foot a:focus-visible {
+  opacity: .9;
+  border-bottom-color: currentColor;
+}
 
 /* ------------------------------------------------------------------ */
 /* Útgáfa: mini — ein lína                                             */

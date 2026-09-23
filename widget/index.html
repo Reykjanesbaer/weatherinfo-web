@@ -16,7 +16,9 @@
       widget/?stadur=reykjanesbaer&view=full&days=3&theme=auto
     Sjá README fyrir allar stillingar.
   -->
-  <div id="wx-root" class="wx" role="region" aria-live="polite" aria-label="Veður"></div>
+  <!-- Ekkert aria-live hér: kortið endurnýjast reglulega og skjálesari
+       myndi lesa það allt upp í hvert sinn. -->
+  <div id="wx-root" class="wx" role="region" aria-label="Veður"></div>
 
   <script src="config.js"></script>
   <script src="icons.js"></script>

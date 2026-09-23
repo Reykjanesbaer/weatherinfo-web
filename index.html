@@ -215,6 +215,21 @@
         </div>
       </div>
 
+      <div class="row">
+        <div class="field">
+          <label for="c-align">Staðsetning á síðu</label>
+          <select id="c-align">
+            <option value="left">Vinstri</option>
+            <option value="center">Miðja</option>
+            <option value="right">Hægri</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="c-credit-size">Stærð á heimild</label>
+          <input type="number" id="c-credit-size" min="9" max="16" step="0.5" value="10.5">
+        </div>
+      </div>
+
       <div class="field check">
         <input type="checkbox" id="c-sun">
         <label for="c-sun" style="margin:0">Sólarupprás og sólsetur</label>
@@ -335,7 +350,8 @@
       accent: $('c-accent').value.replace('#', ''),
       sun: $('c-sun').checked ? '1' : '',
       bg: $('c-transparent').checked ? 'transparent' : '',
-      credit: $('c-credit').checked ? '' : '0'
+      credit: $('c-credit').checked ? '' : '0',
+      creditSize: $('c-credit-size').value.trim()
     };
     /* Sleppa því sem er sjálfgefið svo slóðin haldist stutt */
     if (o.theme === 'auto') delete o.theme;
@@ -346,6 +362,8 @@
     if (!o.sun) delete o.sun;
     if (!o.bg) delete o.bg;
     if (!o.credit) delete o.credit;
+    /* Heimildarstærðin fer aðeins með ef hún víkur frá sjálfgefnu gildi */
+    if (!o.creditSize || parseFloat(o.creditSize) === 10.5) delete o.creditSize;
     if (o.view === 'compact') delete o.view;
     return o;
   }
@@ -372,20 +390,41 @@
 
   function attrLines(o) {
     return Object.keys(o).map(function (k) {
-      return '  data-' + k + '="' + o[k] + '"';
+      /*
+       * HTML-eigindi eru hástafaónæm og verða lágstafa við þáttun, svo
+       * camelCase verður að fara í kebab-case: annars læsi embed.js
+       * "creditsize" (án bandstriks) og stillingin dytti þegjandi niður.
+       */
+      var name = k.replace(/[A-Z]/g, function (ch) {
+        return '-' + ch.toLowerCase();
+      });
+      return '  data-' + name + '="' + o[k] + '"';
     });
+  }
+
+  /*
+   * Auto-spássíur yfirskrifa miðjun sem kemur úr umlykjandi gámi,
+   * hvort sem hún er gerð með text-align eða flex.
+   */
+  function margins(align) {
+    if (align === 'center') return 'margin-left:auto;margin-right:auto;';
+    if (align === 'right') return 'margin-left:auto;margin-right:0;';
+    return 'margin-left:0;margin-right:auto;';
   }
 
   function update() {
     var o = options();
     var q = query(o);
     var width = $('c-width').value.trim() || '420px';
+    var align = $('c-align').value;
     var height = estimateHeight(o);
     var url = base + 'widget/' + q;
 
     var frame = $('preview');
     frame.style.height = height + 'px';
     frame.style.maxWidth = width;
+    frame.style.marginLeft = align === 'left' ? '0' : 'auto';
+    frame.style.marginRight = align === 'right' ? '0' : 'auto';
     frame.src = url + (q ? '&' : '?') + 'frameId=preview';
 
     $('code-url').textContent = url;
@@ -396,12 +435,14 @@
       '  title="Veður"\n' +
       '  loading="lazy"\n' +
       '  scrolling="no"\n' +
-      '  style="width:100%;max-width:' + width + ';height:' + height + 'px;border:0;display:block">\n' +
+      '  style="width:100%;max-width:' + width + ';height:' + height + 'px;' +
+      'border:0;display:block;' + margins(align) + '">\n' +
       '</iframe>';
 
     var lines = ['<script', '  src="' + base + 'embed.js"']
       .concat(attrLines(o))
-      .concat(['  data-max-width="' + width + '">']);
+      .concat(['  data-align="' + align + '"',
+               '  data-max-width="' + width + '">']);
     $('code-script').textContent = lines.join('\n') + '\n<\/script>';
   }
 

@@ -14,6 +14,7 @@
   var API = 'https://api.open-meteo.com/v1/forecast';
   var CACHE_TTL_MS = 5 * 60 * 1000;      /* gögn talin fersk í 5 mín */
   var STALE_AFTER_MS = 60 * 60 * 1000;   /* eldri en klst -> merkt gamalt */
+  var FALLBACK_MAX_MS = 6 * 60 * 60 * 1000; /* má nota sem varaleið í 6 klst */
 
   /* ================================================================== */
   /* Stillingar úr slóð                                                  */
@@ -57,6 +58,7 @@
       radius: q.get('radius'),
       transparent: q.get('bg') === 'transparent',
       credit: q.get('credit') !== '0',
+      creditSize: sanitizeSize(q.get('creditSize')),
       refreshMin: clampInt(q.get('refresh'), 5, 180, 15),
       link: q.get('link') || ''
     };
@@ -73,6 +75,17 @@
     if (!raw) return null;
     var v = raw.replace(/^#/, '').trim();
     return /^[0-9a-fA-F]{3}$|^[0-9a-fA-F]{6}$/.test(v) ? '#' + v : null;
+  }
+
+  /*
+   * Leturstærð í px: heiltala eða einn aukastafur, klemmd á 9-16.
+   * Aðeins tölur sleppa í gegn — aldrei hrár texti inn í style.
+   */
+  function sanitizeSize(raw) {
+    if (!raw) return null;
+    var v = String(raw).trim();
+    if (!/^\d{1,2}(\.\d)?$/.test(v)) return null;
+    return Math.min(16, Math.max(9, parseFloat(v)));
   }
 
   /* ================================================================== */
@@ -147,18 +160,23 @@
     }
 
     /* Nógu margir dagar til að þekja bæði dagaspá og klukkustundir */
-    var span = Math.max(o.days, o.hours > 0 ? 2 : 1, needDaily ? 1 : 1);
+    var span = Math.max(o.days, o.hours > 0 ? 2 : 1);
     p.set('forecast_days', String(Math.min(7, Math.max(1, span))));
 
     return API + '?' + p.toString();
   }
 
-  function cacheGet(url) {
+  /*
+   * maxAge ræður hversu gömul gögn mega vera. Fersk sókn notar CACHE_TTL_MS,
+   * en varaleiðin eftir netvillu má seilast mun lengra aftur (FALLBACK_MAX_MS)
+   * — betra er að sýna gömul gögn, merkt sem slík, en villuskilaboð.
+   */
+  function cacheGet(url, maxAge) {
     try {
       var raw = sessionStorage.getItem('wx:' + url);
       if (!raw) return null;
       var entry = JSON.parse(raw);
-      if (Date.now() - entry.at > CACHE_TTL_MS) return null;
+      if (Date.now() - entry.at > (maxAge || CACHE_TTL_MS)) return null;
       return entry;
     } catch (e) { return null; }
   }
@@ -173,11 +191,19 @@
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timer = controller ? setTimeout(function () { controller.abort(); }, 12000) : null;
 
+    function clear() {
+      if (timer) { clearTimeout(timer); timer = null; }
+    }
+
     return fetch(url, controller ? { signal: controller.signal } : undefined)
       .then(function (res) {
-        if (timer) clearTimeout(timer);
+        clear();
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return res.json();
+      }, function (err) {
+        /* Tímamælirinn þarf líka að hverfa þegar sóknin sjálf mistekst */
+        clear();
+        throw err;
       })
       .then(function (data) {
         if (!data || !data.current) throw new Error('Óvænt svar frá veðurþjónustu');
@@ -385,7 +411,12 @@
       temp(c.temperature_2m, lang) + ' stig, vindur ' + windText + '.';
   }
 
-  /* Vefur allt kortið í hlekk ef ?link= er gefið */
+  /*
+   * Vefur kortið í hlekk ef ?link= er gefið.
+   * Fóturinn verður eftir fyrir utan: hann inniheldur heimildarhlekkinn á
+   * Open-Meteo, og hreiðraðir <a> eru ógilt HTML — vafrinn myndi slíta
+   * þeim í sundur og heimildin gæti hætt að virka.
+   */
   function wrapInLink(href) {
     if (!/^https?:\/\//i.test(href)) return;
     var link = document.createElement('a');
@@ -393,8 +424,16 @@
     link.target = '_top';
     link.rel = 'noopener';
     link.style.cssText = 'text-decoration:none;color:inherit;display:block';
-    while (root.firstChild) link.appendChild(root.firstChild);
-    root.appendChild(link);
+
+    var foot = root.querySelector('.wx-foot');
+    var node = root.firstChild;
+    while (node) {
+      var next = node.nextSibling;
+      if (node !== foot) link.appendChild(node);
+      node = next;
+    }
+    /* Hlekkurinn fer fremst, fóturinn heldur sínum stað neðst */
+    root.insertBefore(link, root.firstChild);
   }
 
   /* ================================================================== */
@@ -429,7 +468,12 @@
     if (o.radius !== null && o.radius !== undefined && /^\d{1,2}$/.test(o.radius)) {
       el.style.setProperty('--wx-radius', o.radius + 'px');
     }
-    document.documentElement.lang = o.lang;
+    if (o.creditSize !== null) {
+      el.style.setProperty('--wx-credit-size', o.creditSize + 'px');
+    }
+    /* Innfelld í iframe: skugginn klippist af jöðrunum, sjá widget.css */
+    if (window.parent !== window) el.setAttribute('data-framed', '');
+    el.lang = o.lang;
   }
 
   function start() {
@@ -437,32 +481,48 @@
     applyChrome(o);
 
     var url = buildUrl(o);
-    var timer = null;
+    /* Síðustu gögn sem tókst að sækja — lifa af misheppnaða endurnýjun */
+    var lastGood = null;
+    var inFlight = false;
+
+    function show(entry) {
+      lastGood = entry;
+      render(o, entry.data, entry.at);
+    }
 
     function load(useCache) {
-      var cached = useCache ? cacheGet(url) : null;
-      if (cached) { render(o, cached.data, cached.at); return; }
+      if (inFlight) return;
 
-      if (!root.querySelector('.wx-now-main') && !root.querySelector('.wx-place')) {
-        renderSkeleton(o);
-      }
+      var cached = useCache ? cacheGet(url, CACHE_TTL_MS) : null;
+      if (cached) { show(cached); return; }
 
+      /* Beinagrind aðeins þegar ekkert er þegar á skjánum */
+      if (!lastGood) renderSkeleton(o);
+
+      inFlight = true;
       fetchWeather(url)
         .then(function (data) {
+          inFlight = false;
           cacheSet(url, data);
-          render(o, data, Date.now());
+          show({ data: data, at: Date.now() });
         })
         .catch(function (err) {
+          inFlight = false;
           if (window.console && console.warn) console.warn('[weatherinfo]', err);
-          var fallback = cacheGet(url);
-          if (fallback) render(o, fallback.data, fallback.at);
+          /*
+           * Tímabundin netvilla má ekki eyða veðri sem þegar sést. Höldum
+           * síðustu gögnum uppi (render merkir þau gömul eftir klukkustund)
+           * og sýnum villu aðeins ef ekkert er til að falla aftur á.
+           */
+          var fallback = lastGood || cacheGet(url, FALLBACK_MAX_MS);
+          if (fallback) show(fallback);
           else renderError(o, function () { load(false); });
         });
     }
 
     load(true);
 
-    timer = setInterval(function () {
+    setInterval(function () {
       if (!document.hidden) load(false);
     }, o.refreshMin * 60 * 1000);
 
@@ -470,8 +530,6 @@
     document.addEventListener('visibilitychange', function () {
       if (!document.hidden) load(true);
     });
-
-    window.addEventListener('pagehide', function () { clearInterval(timer); });
 
     if (typeof ResizeObserver !== 'undefined') {
       new ResizeObserver(postHeight).observe(document.documentElement);
